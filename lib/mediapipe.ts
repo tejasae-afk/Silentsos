@@ -19,8 +19,8 @@ type HeadGestureState = {
   stopListening: () => void;
 };
 
-const THRESHOLD = 0.5;      // g-force change required
-const DEBOUNCE_MS = 800;    // prevent double-detection
+const THRESHOLD = 0.3;      // g-force change required (lower = more sensitive)
+const DEBOUNCE_MS = 500;    // prevent double-detection
 
 export function useHeadGesture(onGesture?: (gesture: 'nod' | 'shake') => void): HeadGestureState {
   const [gesture, setGesture] = useState<Gesture>(null);
@@ -37,7 +37,7 @@ export function useHeadGesture(onGesture?: (gesture: 'nod' | 'shake') => void): 
     setConfidence(0);
     setIsListening(true);
 
-    Accelerometer.setUpdateInterval(100);
+    Accelerometer.setUpdateInterval(50); // poll every 50ms for faster gesture response
     subscriptionRef.current = Accelerometer.addListener(({ x, y }) => {
       if (!baselineRef.current) {
         baselineRef.current = { x, y };

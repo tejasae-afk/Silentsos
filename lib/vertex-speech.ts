@@ -8,11 +8,7 @@
 
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import {
-  readAsStringAsync,
-  deleteAsync,
-  EncodingType,
-} from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY ?? '';
 
@@ -35,6 +31,16 @@ export function speakText(text: string): Promise<void> {
 }
 
 // ─── Speech-to-Text ──────────────────────────────────────────────────────────
+
+// Module-level guard: only one recording can exist at a time in expo-av
+let _activeRecording: Audio.Recording | null = null;
+
+async function _safeStopActive() {
+  if (_activeRecording) {
+    try { await _activeRecording.stopAndUnloadAsync(); } catch {}
+    _activeRecording = null;
+  }
+}
 
 /**
  * Record microphone for `durationMs` milliseconds, then send to
@@ -62,6 +68,9 @@ async function _record(
   onStopReady: (stopFn: () => void) => void
 ): Promise<string> {
   try {
+    // Ensure any previous recording is fully unloaded first
+    await _safeStopActive();
+
     const { granted } = await Audio.requestPermissionsAsync();
     if (!granted) return '';
 
@@ -93,11 +102,15 @@ async function _record(
       web: { mimeType: 'audio/webm', bitsPerSecond: 128000 },
     });
 
+    // Track active recording so next call can clean it up
+    _activeRecording = recording;
+
     // Expose early-stop to caller
     let stopped = false;
     onStopReady(() => {
       stopped = true;
       recording.stopAndUnloadAsync().catch(() => {});
+      _activeRecording = null;
     });
 
     // Countdown — checks stopped each second
@@ -108,13 +121,17 @@ async function _record(
       await new Promise((r) => setTimeout(r, 1000));
     }
 
-    if (!stopped) await recording.stopAndUnloadAsync();
+    if (!stopped) {
+      await recording.stopAndUnloadAsync();
+      _activeRecording = null;
+    }
 
     const uri = recording.getURI();
     if (!uri) return '';
 
     return await _transcribe(uri);
   } catch (err) {
+    _activeRecording = null;
     console.warn('[STT] Recording error:', err);
     return '';
   }
@@ -122,10 +139,10 @@ async function _record(
 
 async function _transcribe(uri: string): Promise<string> {
   try {
-    const base64Audio = await readAsStringAsync(uri, {
-      encoding: EncodingType.Base64,
+    const base64Audio = await FileSystem.readAsStringAsync(uri, {
+      encoding: 'base64' as any,
     });
-    await deleteAsync(uri, { idempotent: true });
+    await FileSystem.deleteAsync(uri, { idempotent: true });
 
     if (!API_KEY) {
       console.warn('[STT] No EXPO_PUBLIC_GOOGLE_API_KEY — skipping transcription');

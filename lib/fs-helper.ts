@@ -10,7 +10,7 @@ export async function readFileAsBase64(uri: string): Promise<string> {
     return uri.includes(',') ? uri.split(',')[1] : uri;
   }
   return await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: 'base64' as any,
   });
 }
 

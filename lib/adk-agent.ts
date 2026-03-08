@@ -19,7 +19,7 @@ import {
 } from './gemini';
 import { AudioStreamer } from './audio-stream';
 import { analyzeScene, generateEmergencySummary } from './claude-fallback';
-import { sendAlert } from './twilio';
+import { sendAlert, type AlertContact } from './twilio';
 
 // ─── Agent Tool Interface ─────────────────────────────────────────────────────
 
@@ -68,8 +68,10 @@ export class SilentSOSAgent {
 
   constructor(
     private userId: string,
+    private userName: string,
     private userConditions: string[],
-    private userMedications: string[]
+    private userMedications: string[],
+    private emergencyContacts: AlertContact[]
   ) {}
 
   async runEmergencyFlow(tools: AgentTools): Promise<AgentResult> {
@@ -216,6 +218,10 @@ export class SilentSOSAgent {
       tools.onStatusUpdate('Sending alert to your contacts...');
       const alertResult = await sendAlert({
         userId: this.userId || 'anonymous',
+        userName: this.userName || 'SilentSOS User',
+        contacts: this.emergencyContacts,
+        userConditions: this.userConditions,
+        userMedications: this.userMedications,
         summary,
         emergencyType: sceneData?.emergencyType ?? 'unknown',
         severity: sceneData?.severity ?? 'high',

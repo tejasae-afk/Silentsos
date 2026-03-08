@@ -1,5 +1,14 @@
+export type AlertContact = {
+  name: string;
+  phone: string;
+};
+
 export type AlertPayload = {
   userId: string;
+  userName: string;
+  contacts: AlertContact[];
+  userConditions: string[];
+  userMedications: string[];
   summary: string;
   emergencyType: string;
   severity: string;

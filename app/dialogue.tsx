@@ -5,6 +5,7 @@ import { Alert, Animated, SafeAreaView, StyleSheet, Text, TouchableOpacity, View
 import YesNoCard from '../components/YesNoCard';
 import { useEmergency } from '../context/EmergencyContext';
 import { useHeadGesture } from '../lib/mediapipe';
+import * as Speech from 'expo-speech';
 import { parseYesNo, recordAndTranscribe, speakText } from '../lib/vertex-speech';
 
 type VoiceState = 'idle' | 'speaking' | 'listening' | 'processing';
@@ -60,6 +61,10 @@ export default function DialogueScreen() {
 
   async function runVoiceFlow(question: string) {
     // 1. Speak the question via Google Cloud TTS
+    // Stop any lingering speech from the previous answer confirmation
+    Speech.stop();
+    // Small pause so the audio session fully releases before new TTS starts
+    await new Promise((r) => setTimeout(r, 300));
     setVoiceState('speaking');
     await speakText(question);
     if (answeredRef.current) return;

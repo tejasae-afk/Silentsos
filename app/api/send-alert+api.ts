@@ -19,8 +19,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 );
 
+type AlertContact = { name: string; phone: string };
+
 type AlertRequest = {
   userId: string;
+  userName: string;
+  contacts: AlertContact[];
+  userConditions: string[];
+  userMedications: string[];
   summary: string;
   emergencyType: string;
   severity: string;
@@ -55,26 +61,37 @@ async function sendSMS(to: string, body: string): Promise<boolean> {
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const { userId, summary, emergencyType, severity, gpsLat, gpsLng, questions, answers, observations }: AlertRequest = await request.json();
+    const {
+      userId, userName, contacts, userConditions, userMedications,
+      summary, emergencyType, severity, gpsLat, gpsLng,
+      questions, answers, observations,
+    }: AlertRequest = await request.json();
 
-    // 1. Fetch user profile
-    const { data: user } = await supabase
-      .from('users')
-      .select('name, conditions, medications')
-      .eq('id', userId)
-      .single();
+    // Use payload data (from app context) as primary source.
+    // Fall back to Supabase lookup only if contacts list is empty.
+    let contactList: AlertContact[] = contacts ?? [];
+    let resolvedName = userName || 'SilentSOS User';
+    let conditions = (userConditions ?? []).join(', ') || 'none listed';
+    let medications = (userMedications ?? []).join(', ') || 'none listed';
 
-    // 2. Fetch emergency contacts
-    const { data: contacts } = await supabase
-      .from('emergency_contacts')
-      .select('name, phone')
-      .eq('user_id', userId);
+    if (contactList.length === 0) {
+      // Supabase fallback — in case old client version didn't send contacts
+      const { data: user } = await supabase
+        .from('users')
+        .select('name, conditions, medications')
+        .eq('id', userId)
+        .single();
+      const { data: dbContacts } = await supabase
+        .from('emergency_contacts')
+        .select('name, phone')
+        .eq('user_id', userId);
+      contactList = dbContacts ?? [];
+      if (user?.name) resolvedName = user.name;
+      if (user?.conditions?.length) conditions = user.conditions.join(', ');
+      if (user?.medications?.length) medications = user.medications.join(', ');
+    }
 
-    const contactList = contacts ?? [];
     const mapsLink = `https://maps.google.com/?q=${gpsLat},${gpsLng}`;
-    const userName = user?.name ?? 'SilentSOS User';
-    const conditions = (user?.conditions ?? []).join(', ') || 'none listed';
-    const medications = (user?.medications ?? []).join(', ') || 'none listed';
 
     // Build confirmed Q&A lines (only answered questions)
     const qaLines = (questions ?? [])
@@ -88,7 +105,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const messageBody = [
       `🆘 SilentSOS EMERGENCY ALERT`,
-      `👤 ${userName} needs help NOW`,
+      `👤 ${resolvedName} needs help NOW`,
       ``,
       `🚨 ${emergencyType.toUpperCase()} — ${severityLabel}`,
       ``,

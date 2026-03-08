@@ -21,6 +21,7 @@ export default function HomeScreen() {
 
   const {
     userProfile,
+    emergencyContacts,
     loadingStatus,
     setLoadingStatus,
     setCurrentQuestion,
@@ -51,8 +52,10 @@ export default function HomeScreen() {
 
     const agent = new SilentSOSAgent(
       userProfile.id || 'anonymous',
+      userProfile.name || 'SilentSOS User',
       userProfile.conditions,
-      userProfile.medications
+      userProfile.medications,
+      emergencyContacts.map((c) => ({ name: c.name, phone: c.phone }))
     );
 
     // Store abort function in context so dialogue.tsx can cancel
