@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 
 export type SceneAnalysis = {
   emergencyType: 'medical' | 'fire' | 'crime' | 'accident' | 'unknown';
@@ -28,9 +28,7 @@ export async function analyzeScene(
   userProfile: UserProfileInput
 ): Promise<SceneAnalysis> {
   try {
-    const base64 = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: 'base64' as any,
-    });
+    const base64 = await readAsStringAsync(imageUri, { encoding: EncodingType.Base64 });
 
     const response = await fetch('/api/analyze-scene', {
       method: 'POST',

@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, deleteAsync, EncodingType } from 'expo-file-system/legacy';
 
 /**
  * Read a local file as a base64 string.
@@ -9,9 +9,7 @@ export async function readFileAsBase64(uri: string): Promise<string> {
   if (Platform.OS === 'web') {
     return uri.includes(',') ? uri.split(',')[1] : uri;
   }
-  return await FileSystem.readAsStringAsync(uri, {
-    encoding: 'base64' as any,
-  });
+  return await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
 }
 
 /**
@@ -19,7 +17,7 @@ export async function readFileAsBase64(uri: string): Promise<string> {
  */
 export async function deleteFile(uri: string): Promise<void> {
   try {
-    await FileSystem.deleteAsync(uri, { idempotent: true });
+    await deleteAsync(uri, { idempotent: true });
   } catch {
     // ignore
   }

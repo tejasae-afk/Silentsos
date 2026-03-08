@@ -1,9 +1,9 @@
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, deleteAsync, EncodingType } from 'expo-file-system/legacy';
 
 export async function readFileAsBase64(uri: string): Promise<string> {
-  return FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
+  return readAsStringAsync(uri, { encoding: EncodingType.Base64 });
 }
 
 export async function deleteFile(uri: string): Promise<void> {
-  await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+  await deleteAsync(uri, { idempotent: true }).catch(() => {});
 }

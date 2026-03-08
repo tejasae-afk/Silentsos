@@ -8,7 +8,7 @@
 
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, deleteAsync, EncodingType } from 'expo-file-system/legacy';
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY ?? '';
 
@@ -139,10 +139,8 @@ async function _record(
 
 async function _transcribe(uri: string): Promise<string> {
   try {
-    const base64Audio = await FileSystem.readAsStringAsync(uri, {
-      encoding: 'base64' as any,
-    });
-    await FileSystem.deleteAsync(uri, { idempotent: true });
+    const base64Audio = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+    await deleteAsync(uri, { idempotent: true });
 
     if (!API_KEY) {
       console.warn('[STT] No EXPO_PUBLIC_GOOGLE_API_KEY — skipping transcription');

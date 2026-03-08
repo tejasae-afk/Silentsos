@@ -121,14 +121,21 @@ export class SilentSOSAgent {
         usedFallback = true;
         this.liveHandle = null;
 
-        // Fallback A: Gemini one-shot
+        // Fallback A: Gemini one-shot (skip if quota is exceeded)
         if (initialFrame) {
           try {
             tools.onStatusUpdate('Connecting to backup system...');
             sceneData = await analyzeSceneWithGemini(initialFrame, this.userConditions);
             questions = sceneData.suggestedQuestions;
           } catch (geminiError) {
-            console.warn('[SilentSOSAgent] Gemini one-shot failed, using Claude:', geminiError);
+            const msg = String(geminiError);
+            const isQuota = msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED');
+            console.warn(
+              isQuota
+                ? '[SilentSOSAgent] Gemini quota exceeded, skipping to Claude'
+                : '[SilentSOSAgent] Gemini one-shot failed, using Claude:',
+              isQuota ? '' : geminiError
+            );
           }
         }
 
