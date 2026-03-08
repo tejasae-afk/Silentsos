@@ -56,18 +56,22 @@ export default function DialogueScreen() {
     questionKeyRef.current = key;
     answeredRef.current = false;
     setLastTranscript('');
-    runVoiceFlow(currentQuestion.text);
+    runVoiceFlow(currentQuestion.text, key);
   }, [currentQuestion]);
 
-  async function runVoiceFlow(question: string) {
+  async function runVoiceFlow(question: string, myKey: string) {
+    // Guard: bail out if a newer question has taken over
+    const stale = () => questionKeyRef.current !== myKey || answeredRef.current;
+
     // 1. Speak the question via Google Cloud TTS
     // Stop any lingering speech from the previous answer confirmation
     Speech.stop();
     // Small pause so the audio session fully releases before new TTS starts
     await new Promise((r) => setTimeout(r, 300));
+    if (stale()) return;
     setVoiceState('speaking');
     await speakText(question);
-    if (answeredRef.current) return;
+    if (stale()) return;
 
     // 2. Record user response via microphone
     setVoiceState('listening');
@@ -75,7 +79,7 @@ export default function DialogueScreen() {
     stopMicRef.current = stop;
     const transcript = await promise;
     stopMicRef.current = null;
-    if (answeredRef.current) return;
+    if (stale()) return;
 
     // 3. Interpret response with NLP parser
     setVoiceState('processing');
@@ -88,12 +92,14 @@ export default function DialogueScreen() {
       resolveAnswer(parsed);
     } else if (transcript) {
       // Heard something but ambiguous — one re-prompt then fall back to buttons
+      if (stale()) return;
       await speakText("I didn't catch that clearly. Please say yes or no, or tap the buttons below.");
-      setVoiceState('idle');
+      if (!stale()) setVoiceState('idle');
     } else {
       // Nothing heard — guide to buttons
+      if (stale()) return;
       await speakText('Please tap Yes or No below to answer.');
-      setVoiceState('idle');
+      if (!stale()) setVoiceState('idle');
     }
   }
 
