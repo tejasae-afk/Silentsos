@@ -26,6 +26,9 @@ type AlertRequest = {
   severity: string;
   gpsLat: number;
   gpsLng: number;
+  questions: string[];
+  answers: boolean[];
+  observations: string[];
 };
 
 async function sendSMS(to: string, body: string): Promise<boolean> {
@@ -52,7 +55,7 @@ async function sendSMS(to: string, body: string): Promise<boolean> {
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const { userId, summary, emergencyType, severity, gpsLat, gpsLng }: AlertRequest = await request.json();
+    const { userId, summary, emergencyType, severity, gpsLat, gpsLng, questions, answers, observations }: AlertRequest = await request.json();
 
     // 1. Fetch user profile
     const { data: user } = await supabase
@@ -73,12 +76,35 @@ export async function POST(request: Request): Promise<Response> {
     const conditions = (user?.conditions ?? []).join(', ') || 'none listed';
     const medications = (user?.medications ?? []).join(', ') || 'none listed';
 
-    const messageBody = `🆘 EMERGENCY ALERT from ${userName}
-Type: ${emergencyType} | Severity: ${severity}
-Summary: ${summary}
-Location: ${mapsLink}
-Medical conditions: ${conditions} | Meds: ${medications}
-Sent automatically by SilentSOS`;
+    // Build confirmed Q&A lines (only answered questions)
+    const qaLines = (questions ?? [])
+      .map((q, i) => `  • ${q.replace(/\?$/, '')}: ${answers?.[i] ? 'YES ✓' : 'NO ✗'}`)
+      .join('\n');
+
+    // Top 2 scene observations (keep SMS concise)
+    const sceneLines = (observations ?? []).slice(0, 2).join('. ');
+
+    const severityLabel = severity === 'critical' ? '🔴 CRITICAL' : severity === 'high' ? '🟡 HIGH' : '🔵 MEDIUM';
+
+    const messageBody = [
+      `🆘 SilentSOS EMERGENCY ALERT`,
+      `👤 ${userName} needs help NOW`,
+      ``,
+      `🚨 ${emergencyType.toUpperCase()} — ${severityLabel}`,
+      ``,
+      qaLines ? `✅ CONFIRMED BY PATIENT:\n${qaLines}` : '',
+      sceneLines ? `\n👁 SCENE: ${sceneLines}` : '',
+      ``,
+      `📍 LOCATION (tap to navigate):\n${mapsLink}`,
+      ``,
+      `💊 CONDITIONS: ${conditions}`,
+      `    MEDS: ${medications}`,
+      ``,
+      `📋 SUMMARY: ${summary}`,
+      ``,
+      `⚡ This person CANNOT SPEAK — call 911 immediately`,
+      `Sent by SilentSOS app`,
+    ].filter(Boolean).join('\n');
 
     // 3. Send SMS in parallel to all contacts (never throw)
     const results = await Promise.all(

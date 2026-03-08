@@ -5,6 +5,9 @@ export type AlertPayload = {
   severity: string;
   gpsLat: number;
   gpsLng: number;
+  questions: string[];
+  answers: boolean[];
+  observations: string[];
 };
 
 export type AlertResult = {

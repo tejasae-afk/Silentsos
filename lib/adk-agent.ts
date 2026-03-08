@@ -221,6 +221,9 @@ export class SilentSOSAgent {
         severity: sceneData?.severity ?? 'high',
         gpsLat: gps.lat,
         gpsLng: gps.lng,
+        questions,
+        answers,
+        observations: sceneData?.observations ?? [],
       });
 
       return {
