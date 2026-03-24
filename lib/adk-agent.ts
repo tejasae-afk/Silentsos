@@ -13,7 +13,6 @@
 import {
   startLiveSession,
   closeLiveSession,
-  analyzeSceneWithGemini,
   type LiveSessionHandle,
   type GeminiSceneAnalysis,
 } from './gemini';
@@ -125,7 +124,16 @@ export class SilentSOSAgent {
         if (initialFrame) {
           try {
             tools.onStatusUpdate('Connecting to backup system...');
-            sceneData = await analyzeSceneWithGemini(initialFrame, this.userConditions);
+            const res = await fetch('/api/analyze-scene', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                imageBase64: initialFrame,
+                userProfile: { conditions: this.userConditions, medications: this.userMedications },
+              }),
+            });
+            if (!res.ok) throw new Error(`analyze-scene ${res.status}`);
+            sceneData = (await res.json()) as GeminiSceneAnalysis;
             questions = sceneData.suggestedQuestions;
           } catch (geminiError) {
             const msg = String(geminiError);

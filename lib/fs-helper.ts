@@ -9,6 +9,8 @@ export async function readFileAsBase64(uri: string): Promise<string> {
   if (Platform.OS === 'web') {
     return uri.includes(',') ? uri.split(',')[1] : uri;
   }
+  // If already base64 (no URI scheme), return as-is
+  if (!uri.includes('://')) return uri;
   return await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
 }
 
