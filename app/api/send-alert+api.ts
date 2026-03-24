@@ -135,6 +135,11 @@ export async function POST(request: Request): Promise<Response> {
       .filter((r) => r.success)
       .map((r) => `${r.name} (${r.phone})`);
 
+    const failed = results.filter((r) => !r.success);
+    if (failed.length > 0) {
+      console.error('[send-alert] SMS failed for:', failed.map((r) => `${r.name} (${r.phone})`).join(', '));
+    }
+
     const timestamp = new Date().toISOString();
 
     // 4. Log alert to Supabase

@@ -74,6 +74,31 @@ export class SilentSOSAgent {
   ) {}
 
   async runEmergencyFlow(tools: AgentTools): Promise<AgentResult> {
+    const FLOW_TIMEOUT_MS = 90_000;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const timeoutPromise = new Promise<AgentResult>((resolve) => {
+      timeoutId = setTimeout(() => {
+        this.abort();
+        resolve({
+          success: false,
+          summary: '',
+          emergencyType: 'unknown',
+          severity: 'unknown',
+          contactsNotified: [],
+          alertTimestamp: new Date().toISOString(),
+          usedFallback: false,
+          error: 'Emergency flow timed out after 90s',
+        });
+      }, FLOW_TIMEOUT_MS);
+    });
+
+    return Promise.race([this._runFlow(tools), timeoutPromise]).finally(() => {
+      clearTimeout(timeoutId);
+    });
+  }
+
+  private async _runFlow(tools: AgentTools): Promise<AgentResult> {
     let usedFallback = false;
 
     try {

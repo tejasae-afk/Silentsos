@@ -10,7 +10,6 @@ import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 import { readAsStringAsync, deleteAsync, EncodingType } from 'expo-file-system/legacy';
 
-const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY ?? '';
 
 // ─── Text-to-Speech ──────────────────────────────────────────────────────────
 
@@ -142,35 +141,15 @@ async function _transcribe(uri: string): Promise<string> {
     const base64Audio = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
     await deleteAsync(uri, { idempotent: true });
 
-    if (!API_KEY) {
-      console.warn('[STT] No EXPO_PUBLIC_GOOGLE_API_KEY — skipping transcription');
-      return '';
-    }
-
-    const res = await fetch(
-      `https://speech.googleapis.com/v1/speech:recognize?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          config: {
-            encoding: 'LINEAR16',
-            sampleRateHertz: 16000,
-            languageCode: 'en-US',
-            enableAutomaticPunctuation: true,
-            model: 'command_and_search', // optimised for short spoken responses
-            useEnhanced: true,
-          },
-          audio: { content: base64Audio },
-        }),
-      }
-    );
+    const res = await fetch('/api/transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audioBase64: base64Audio }),
+    });
 
     if (!res.ok) throw new Error(`STT HTTP ${res.status}`);
     const data = await res.json();
-    const transcript: string =
-      data.results?.[0]?.alternatives?.[0]?.transcript ?? '';
-    return transcript.trim();
+    return (data.transcript as string) ?? '';
   } catch (err) {
     console.warn('[STT] Transcription error:', err);
     return '';

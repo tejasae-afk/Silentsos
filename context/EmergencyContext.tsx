@@ -69,6 +69,9 @@ export function EmergencyProvider({ children }: { children: ReactNode }) {
   const answerResolverRef = useRef<((v: boolean) => void) | null>(null);
 
   function setPendingAnswer(resolver: (v: boolean) => void) {
+    // Fire any existing pending resolver with false before replacing it,
+    // so the agent is never permanently stuck awaiting an answer
+    answerResolverRef.current?.(false);
     answerResolverRef.current = resolver;
   }
 
@@ -91,6 +94,7 @@ export function EmergencyProvider({ children }: { children: ReactNode }) {
     setLoadingStatus('');
     setAlertResult(null);
     setAgentAbort(null);
+    answerResolverRef.current?.(false);
     answerResolverRef.current = null;
   }
 
