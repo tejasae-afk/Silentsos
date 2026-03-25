@@ -32,6 +32,11 @@ export function useHeadGesture(onGesture?: (gesture: 'nod' | 'shake') => void): 
   const subscriptionRef = useRef<ReturnType<typeof Accelerometer.addListener> | null>(null);
 
   const startListening = useCallback(() => {
+    // Remove existing subscription before creating a new one — prevents leaked
+    // listeners when startListening is called multiple times (e.g. after each answer)
+    subscriptionRef.current?.remove();
+    subscriptionRef.current = null;
+
     baselineRef.current = null;
     setGesture(null);
     setConfidence(0);

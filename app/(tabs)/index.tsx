@@ -134,7 +134,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       {/* Hidden camera for frame capture */}
       <View style={styles.hiddenCamera}>
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="front" />
       </View>
 
       {loading ? (

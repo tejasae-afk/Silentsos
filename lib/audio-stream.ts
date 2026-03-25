@@ -47,6 +47,7 @@ const CHUNK_DURATION_MS = 1500; // Capture 1.5s of audio per chunk
 
 export class AudioStreamer {
   private active = false;
+  private paused = false;
   private onChunk: AudioChunkCallback;
 
   constructor(onChunk: AudioChunkCallback) {
@@ -74,6 +75,19 @@ export class AudioStreamer {
 
   stop(): void {
     this.active = false;
+    this.paused = false;
+  }
+
+  /**
+   * Pause ambient capture during STT recording windows to avoid
+   * expo-av conflicts (only one Audio.Recording can be active at a time).
+   */
+  pause(): void {
+    this.paused = true;
+  }
+
+  resume(): void {
+    this.paused = false;
   }
 
   private async recordLoop(): Promise<void> {
@@ -90,6 +104,12 @@ export class AudioStreamer {
 
   private async captureChunk(): Promise<void> {
     if (!this.active) return;
+
+    // Yield while STT is recording to avoid expo-av single-recording constraint
+    if (this.paused) {
+      await delay(200);
+      return;
+    }
 
     const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
 

@@ -199,7 +199,11 @@ export class SilentSOSAgent {
         const question = questions[i] ?? FALLBACK_QUESTIONS[i] ?? 'Do you need immediate help?';
         tools.onQuestion(question, i);
 
+        // Pause ambient audio streaming while STT records the user's spoken answer
+        // to prevent expo-av from having two concurrent Audio.Recording instances.
+        this.audioStreamer?.pause();
         const answer = await tools.onAnswer();
+        this.audioStreamer?.resume();
         answers.push(answer);
 
         // If Live session is active: send next frame → get next question
