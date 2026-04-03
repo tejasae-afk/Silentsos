@@ -111,3 +111,4 @@ Gemini Live  →  Gemini one-shot  →  Claude Vision  →  Static fallback ques
 | 1:40 | "Help is on the way." Show SMS that lands on demo phone. |
 | 2:00 | "Gemini Live, ADK, Twilio — under 10 seconds." |
 | 2:20 | "SilentSOS — because everyone deserves a voice." |
+
