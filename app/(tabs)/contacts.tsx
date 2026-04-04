@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -19,6 +19,10 @@ type Contact = {
   relationship: string;
 };
 
+function isValidPhone(phone: string): boolean {
+  return /^\+?[1-9]\d{7,14}$/.test(phone.replace(/[\s\-().]/g, ''));
+}
+
 export default function ContactsScreen() {
   const { emergencyContacts, setEmergencyContacts } = useEmergency();
   const [modalVisible, setModalVisible] = useState(false);
@@ -36,6 +40,13 @@ export default function ContactsScreen() {
   function addContact() {
     if (!name.trim() || !phone.trim()) {
       Alert.alert('Required', 'Name and phone number are required.');
+      return;
+    }
+    if (!isValidPhone(phone.trim())) {
+      Alert.alert(
+        'Invalid Phone Number',
+        'Please enter a valid phone number including country code (e.g. +1 650 555 0100). An invalid number will silently fail during an emergency.'
+      );
       return;
     }
     const newContact: Contact = {
